@@ -318,6 +318,9 @@ static int build_virtual(void) {
 /* Normalized Analog State Machine                                           */
 /* ------------------------------------------------------------------------- */
 
+// Flag for rapid-fire mode
+static int rapid = 0;
+
 static int process_event(input_dev_t *in, const struct input_event *ie) {
     if (ie->type == EV_MSC || ie->type == EV_SYN) return 0;
 
@@ -355,7 +358,7 @@ static int process_event(input_dev_t *in, const struct input_event *ie) {
         libevdev_uinput_write_event(uidev, EV_KEY, code, 1);
         libevdev_uinput_write_event(uidev, EV_SYN, SYN_REPORT, 0);
         triggered = 1;
-    } else if ((old_state == 1 && new_state == 2) || (old_state == 2 && new_state == 1)) {
+    } else if ((rapid && old_state == 1 && new_state == 2) || (old_state == 2 && new_state == 1)) {
         int up_code = in->act ? DEF_V1 : DEF_V2;
         int down_code = in->act ? DEF_V2 : DEF_V1;
         libevdev_uinput_write_event(uidev, EV_KEY, up_code, 0);
@@ -430,13 +433,15 @@ static void print_usage(FILE *s, const char *prog) {
                "usage: %s [-h] [-a <path>]\n\n"
                "options:\n"
                "    -h          show this help and exit\n"
-               "    -a <path>   enable audio clicks via wav file\n", prog);
+               "    -r          enable rapid-fire mode\n"
+               "    -a <wav_file>   enable audio clicks via wav file\n", prog);
 }
 
 int main(int argc, char **argv) {
-    for (int opt; (opt = getopt(argc, argv, "ha:")) != -1; ) {
+    for (int opt; (opt = getopt(argc, argv, "hra:")) != -1; ) {
         switch (opt) {
             case 'h': print_usage(stdout, argv[0]); return EXIT_SUCCESS;
+            case 'r': rapid = 1; break;
             case 'a': audio_enabled_flag = 1; wav_path_flag = optarg; break;
             default: print_usage(stderr, argv[0]); return EXIT_FAILURE;
         }
